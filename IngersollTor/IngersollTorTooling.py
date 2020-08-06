@@ -3,6 +3,8 @@ import subprocess
 import time
 import threading
 
+#TODO: 配置可用，需要从驱动层面来实现统一的接口，需要向外部提供Read()、Write()基础方法，socket.isconnect 状态检测 Exception类报警等
+
 class Model():
     equipmentlist = [('10.50.147.195',502),('10.50.147.196',502),('10.50.147.197',502),('10.50.147.198',502),]
     messageinfo = '0000,0.0,P,0,P,0.0,0.0,0,0,0,1,'
