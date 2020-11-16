@@ -53,6 +53,13 @@ class SlaveCommand(object):
     BIT = b'\x00\x01'  # 按照位进行读取（反应在返回的数据上）
 
 
+class Result(object):
+
+    def __init__(self, msg=False, res=None):
+        self.IsSucess = msg
+        self.Content = res
+
+
 class McProtocolBase(object):
     def __init__(self):
         self.head = b'\x50\x00'  # 副报文头
@@ -81,11 +88,43 @@ class McProtocol(McProtocolBase):
     def __init__(self):
         super().__init__()
 
-    def GetCommand(self, address):
-        pass
+    def GetCommand(self, address='M100'):
+        firstCommand = ''
+        secondCommand = ''
+        if address[0].isalpha() is False:
+            return Result(msg=False, res=None)
+        for item in address:
+            if item.isalpha():
+                firstCommand += item
+            else:
+                secondCommand += item
+        if firstCommand != '' and secondCommand != '':
+            return Result(msg=True, res={'firstCommand': firstCommand, 'secondCommand': secondCommand})
+        return Result(msg=False, res=None)
+
+    def OrToX16(self, num,reverse = True):
+        X16Num = hex(num)
+        addressList = []
+        res = b''
+        addressStr = str(X16Num).replace('0x', '')
+        if len(addressStr) % 2 != 0:
+            addressStr = '0' + addressStr
+        for n, value in enumerate(addressStr):
+            if n % 2 == 0 and n < len(addressStr) - 1:
+                addressList.append(addressStr[n] + addressStr[n + 1])
+        if reverse:
+            addressList.reverse()
+        for item in addressList:
+            res += bytes().fromhex(item)
+        return Result(msg=True, res={'result': res})
 
     def CreateReadInt16(self, address):
-        pass
+        addressConvert = self.GetCommand(address)
+        if addressConvert.IsSucess:
+            if addressConvert.Content['firstCommand'].upper() in ProtocolModel.SoftModel.keys():
+                self.softModel = ProtocolModel.SoftModel[addressConvert.Content['firstCommand'].upper()]
+                self.startAddress = self.OrToX16(addressConvert.Content['secondCommand'])
+        return self.CreatePacket()
 
     def CreateReadBool(self, address):
         pass
@@ -104,3 +143,7 @@ class McProtocol(McProtocolBase):
 
     def CreateWriteBool(self, address):
         pass
+
+if __name__ == '__main__':
+    a = McProtocol()
+    print(a.OrToX16(1000).Content['result'])  # 测试数字转16进制 同时反转
