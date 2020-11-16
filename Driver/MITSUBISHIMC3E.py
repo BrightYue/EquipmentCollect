@@ -1,6 +1,7 @@
 """
 驱动类默认仅提供驱动方法，不包含网络类，需在上层提供接口
 """
+import io
 
 
 class ProtocolModel():
@@ -102,7 +103,7 @@ class McProtocol(McProtocolBase):
             return Result(msg=True, res={'firstCommand': firstCommand, 'secondCommand': secondCommand})
         return Result(msg=False, res=None)
 
-    def OrToX16(self, num,reverse = True):
+    def OrToX16(self, num,reverse=True):
         X16Num = hex(num)
         addressList = []
         res = b''
@@ -115,7 +116,8 @@ class McProtocol(McProtocolBase):
         if reverse:
             addressList.reverse()
         for item in addressList:
-            res += bytes().fromhex(item)
+            temp = bytes().fromhex(item)
+            res += temp
         return Result(msg=True, res={'result': res})
 
     def CreateReadInt16(self, address):
@@ -145,5 +147,8 @@ class McProtocol(McProtocolBase):
         pass
 
 if __name__ == '__main__':
+    import sys
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf8')
     a = McProtocol()
-    print(a.OrToX16(1000).Content['result'])  # 测试数字转16进制 同时反转
+    print(a.OrToX16(10000).Content['result'])\
+
