@@ -123,7 +123,7 @@ class McProtocol(McProtocolBase):
             res += temp
         return Result(msg=True, res={'result': res})
 
-    def CreateReadInt16(self, address,readLen=1):
+    def CreateReadCommand(self, address,readLen=1,type=SlaveCommand.WORD):
         """
         创建读16位地址的基类函数，后续如需读取更多字符，提供读取的地址长度，默认FF长度是OK的，修改self.readlenth即可，响应的接受解析也是要对应的
         :param address:  地址，如M100，Y100，X100等 特殊的后期进行特殊处理
@@ -131,6 +131,7 @@ class McProtocol(McProtocolBase):
         """
         self.readLenth = self.OrToX16(readLen).Content['result']
         addressConvert = self.GetCommand(address)
+        self.slaveCommand = type
         ReadCommand = Result()
         if addressConvert.IsSucess:  # 只有输入的软原件在控制器包含的带进行后面计算
             if addressConvert.Content['firstCommand'].upper() in ProtocolModel.SoftModel.keys():
@@ -155,12 +156,12 @@ class McProtocol(McProtocolBase):
                 ReadCommand.IsSucess = False
         return ReadCommand
 
-    def CreateReadBool(self, address):
+    def CreateReadBool(self, address,readlen):
+        return self.CreateReadCommand(address=address,readLen=readlen,type=SlaveCommand.BIT)
         pass
 
-    def CreateReadFolat(self, address):
-        pass
-
+    def CreateReadBit16(self,address,readlen):
+        return self.CreateReadCommand(address=address, readLen=readlen,type=SlaveCommand.WORD)
     def CreateWriteBool(self, address):
         pass
 
@@ -178,10 +179,8 @@ if __name__ == '__main__':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf8')
 
     a = McProtocol()
-    print("MB100:",a.GetCommand('MB100').Content)  # 测试地址解析
-    print(a.OrToX16(2).Content['result'])  # 测试十进制转16进制 反转函数
-    print('读取16位INT测试：',a.CreateReadInt16('M1000',200).IsSucess,'\r\n',a.CreateReadInt16('M1000').Content) # 正常测试
-    print('读取16位INT测试：',a.CreateReadInt16('MMM100').IsSucess,'\r\n',a.CreateReadInt16('MMM100').Content) # 异常测试
+    print('读取16位INT测试：',a.CreateReadBit16('D10150',1).IsSucess,'\r\n',a.CreateReadBit16('M10150',1 ).Content)
+    print('读取BOOL：',a.CreateReadBool('X0',1).IsSucess,'\r\n',a.CreateReadBool('X0',1).Content)
     input()
 
 
