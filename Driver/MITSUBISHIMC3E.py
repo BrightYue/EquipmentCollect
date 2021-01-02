@@ -57,6 +57,8 @@ class SlaveCommand(object):
 class Result(object):
 
     def __init__(self, msg=False, res=None):
+        if res is None:
+            res = dict()
         self.IsSucess = msg
         self.Content = res
 
@@ -92,6 +94,7 @@ class McProtocol(McProtocolBase):
     def GetCommand(self, address='M100'):  # 此方法将输入的地址字母与数字分开
         firstCommand = ''
         secondCommand = ''
+
         if address[0].isalpha() is False:
             return Result(msg=False, res=None)
         for item in address:
@@ -128,13 +131,21 @@ class McProtocol(McProtocolBase):
         """
         self.readLenth = self.OrToX16(readLen).Content['result']
         addressConvert = self.GetCommand(address)
-        if addressConvert.IsSucess:
+        ReadCommand = Result()
+        if addressConvert.IsSucess:  # 只有输入的软原件在控制器包含的带进行后面计算
             if addressConvert.Content['firstCommand'].upper() in ProtocolModel.SoftModel.keys():
                 self.softModel = ProtocolModel.SoftModel[addressConvert.Content['firstCommand'].upper()]
                 self.startAddress = self.OrToX16(int(addressConvert.Content['secondCommand'])).Content['result']
+                ReadCommand.Content['result'] = self.CreatePacket()
+                self.dataLenth =  self.OrToX16(len(ReadCommand.Content['result']) - 7).Content['result']
+                if len(self.dataLenth) != 2:
+                    self.dataLenth = self.dataLenth + b'\x00'
+                ReadCommand.Content['result'] = self.CreatePacket()
+                ReadCommand.IsSucess = True
             else:
-                return Result(msg=False,res=None)
-        return Result(msg=True,res=self.CreatePacket())
+                ReadCommand.Content['result'] = None
+                ReadCommand.IsSucess = False
+        return ReadCommand
 
     def CreateReadBool(self, address):
         pass
@@ -161,8 +172,9 @@ if __name__ == '__main__':
     a = McProtocol()
     print("MB100:",a.GetCommand('MB100').Content)  # 测试地址解析
     print(a.OrToX16(2).Content['result'])  # 测试十进制转16进制 反转函数
-    print('读取16位INT测试：',a.CreateReadInt16('M100').IsSucess,'\r\n',a.CreateReadInt16('M100').Content) # 正常测试
+    print('读取16位INT测试：',a.CreateReadInt16('M100',200).IsSucess,'\r\n',a.CreateReadInt16('M100').Content) # 正常测试
     print('读取16位INT测试：',a.CreateReadInt16('MMM100').IsSucess,'\r\n',a.CreateReadInt16('MMM100').Content) # 异常测试
+    print(a.GetMessageLen(b'\x01\x02\x03'))
     input()
 
 
