@@ -136,8 +136,12 @@ class McProtocol(McProtocolBase):
             if addressConvert.Content['firstCommand'].upper() in ProtocolModel.SoftModel.keys():
                 self.softModel = ProtocolModel.SoftModel[addressConvert.Content['firstCommand'].upper()]
                 self.startAddress = self.OrToX16(int(addressConvert.Content['secondCommand'])).Content['result']
+                if len(self.startAddress) == 2:
+                    self.startAddress += b'\x00'
+                elif len(self.startAddress) == 1:
+                    self.startAddress += b'\x00\x00'
                 ReadCommand.Content['result'] = self.CreatePacket()
-                self.dataLenth =  self.OrToX16(len(ReadCommand.Content['result']) - 7).Content['result']
+                self.dataLenth =  self.OrToX16(len(ReadCommand.Content['result']) - 9).Content['result']
                 if len(self.dataLenth) != 2:
                     self.dataLenth = self.dataLenth + b'\x00'
                 ReadCommand.Content['result'] = self.CreatePacket()
@@ -172,9 +176,8 @@ if __name__ == '__main__':
     a = McProtocol()
     print("MB100:",a.GetCommand('MB100').Content)  # 测试地址解析
     print(a.OrToX16(2).Content['result'])  # 测试十进制转16进制 反转函数
-    print('读取16位INT测试：',a.CreateReadInt16('M100',200).IsSucess,'\r\n',a.CreateReadInt16('M100').Content) # 正常测试
+    print('读取16位INT测试：',a.CreateReadInt16('M1000',200).IsSucess,'\r\n',a.CreateReadInt16('M1000').Content) # 正常测试
     print('读取16位INT测试：',a.CreateReadInt16('MMM100').IsSucess,'\r\n',a.CreateReadInt16('MMM100').Content) # 异常测试
-    print(a.GetMessageLen(b'\x01\x02\x03'))
     input()
 
 
