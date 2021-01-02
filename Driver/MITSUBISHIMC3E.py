@@ -134,14 +134,18 @@ class McProtocol(McProtocolBase):
         ReadCommand = Result()
         if addressConvert.IsSucess:  # 只有输入的软原件在控制器包含的带进行后面计算
             if addressConvert.Content['firstCommand'].upper() in ProtocolModel.SoftModel.keys():
-                self.softModel = ProtocolModel.SoftModel[addressConvert.Content['firstCommand'].upper()]
+                self.softModel = ProtocolModel.SoftModel[addressConvert.Content['firstCommand'].upper()] # 准备软原件
                 self.startAddress = self.OrToX16(int(addressConvert.Content['secondCommand'])).Content['result']
+                # 准备起始地址，起始地址占位48位 \x00\x00\x00 如果不全 需要补齐
                 if len(self.startAddress) == 2:
                     self.startAddress += b'\x00'
                 elif len(self.startAddress) == 1:
                     self.startAddress += b'\x00\x00'
-                ReadCommand.Content['result'] = self.CreatePacket()
+                elif len(self.startAddress) > 3:
+                    raise Exception('输入的地址范围超出界限')
+                ReadCommand.Content['result'] = self.CreatePacket()  # 根据现有配置计算报文长度
                 self.dataLenth =  self.OrToX16(len(ReadCommand.Content['result']) - 9).Content['result']
+                # 计算报文总长度后剪掉头部，展位32位 \x00\x00，如果不足 需要补齐
                 if len(self.dataLenth) != 2:
                     self.dataLenth = self.dataLenth + b'\x00'
                 ReadCommand.Content['result'] = self.CreatePacket()
