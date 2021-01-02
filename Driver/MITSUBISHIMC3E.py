@@ -89,19 +89,19 @@ class McProtocol(McProtocolBase):
     def __init__(self):
         super().__init__()
 
-    def GetCommand(self, address='M100'):
+    def GetCommand(self, address='M100'):  # 此方法将输入的地址字母与数字分开
         firstCommand = ''
         secondCommand = ''
         if address[0].isalpha() is False:
             return Result(msg=False, res=None)
         for item in address:
-            if item.isalpha():
+            if item.isalpha():   # 如果是字母 就付给地址单元标识
                 firstCommand += item
-            else:
+            else:  # 如果是数字的话就赋值给 地址序列标识
                 secondCommand += item
-        if firstCommand != '' and secondCommand != '':
+        if firstCommand != '' and secondCommand != '':  # 判断如果单元标识与地址标识都不是空，那就认为这个地址是合法的
             return Result(msg=True, res={'firstCommand': firstCommand, 'secondCommand': secondCommand})
-        return Result(msg=False, res=None)
+        return Result(msg=False, res=None)   # 如果校验失败 则返回解析失败
 
     def OrToX16(self, num,reverse=True):
         X16Num = hex(num)
@@ -120,13 +120,21 @@ class McProtocol(McProtocolBase):
             res += temp
         return Result(msg=True, res={'result': res})
 
-    def CreateReadInt16(self, address):
+    def CreateReadInt16(self, address,readLen=1):
+        """
+        创建读16位地址的基类函数，后续如需读取更多字符，提供读取的地址长度，默认FF长度是OK的，修改self.readlenth即可，响应的接受解析也是要对应的
+        :param address:  地址，如M100，Y100，X100等 特殊的后期进行特殊处理
+        :return:
+        """
+        self.readLenth = self.OrToX16(readLen).Content['result']
         addressConvert = self.GetCommand(address)
         if addressConvert.IsSucess:
             if addressConvert.Content['firstCommand'].upper() in ProtocolModel.SoftModel.keys():
                 self.softModel = ProtocolModel.SoftModel[addressConvert.Content['firstCommand'].upper()]
-                self.startAddress = self.OrToX16(addressConvert.Content['secondCommand'])
-        return self.CreatePacket()
+                self.startAddress = self.OrToX16(int(addressConvert.Content['secondCommand'])).Content['result']
+            else:
+                return Result(msg=False,res=None)
+        return Result(msg=True,res=self.CreatePacket())
 
     def CreateReadBool(self, address):
         pass
@@ -149,6 +157,12 @@ class McProtocol(McProtocolBase):
 if __name__ == '__main__':
     import sys
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf8')
+
     a = McProtocol()
-    print(a.OrToX16(10000).Content['result'])\
+    print("MB100:",a.GetCommand('MB100').Content)  # 测试地址解析
+    print(a.OrToX16(2).Content['result'])  # 测试十进制转16进制 反转函数
+    print('读取16位INT测试：',a.CreateReadInt16('M100').IsSucess,'\r\n',a.CreateReadInt16('M100').Content) # 正常测试
+    print('读取16位INT测试：',a.CreateReadInt16('MMM100').IsSucess,'\r\n',a.CreateReadInt16('MMM100').Content) # 异常测试
+    input()
+
 
